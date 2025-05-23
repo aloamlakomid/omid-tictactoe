@@ -1,0 +1,195 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>گروه املاک امید - به زودی</title>
+  <script src="https://unpkg.com/lottie-web@5.7.4/build/player/lottie.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Tahoma, sans-serif;
+      background: linear-gradient(270deg, #ff5722, #ff8a65, #ffc107, #ff5722);
+      background-size: 800% 800%;
+      animation: gradientBG 20s ease infinite;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    @keyframes gradientBG {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+
+    h1 {
+      font-size: 2.8em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    p {
+      font-size: 1.4em;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .countdown {
+      font-size: 2em;
+      margin: 20px 0;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .game {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      gap: 10px;
+    }
+
+    .cell {
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .cell:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .A { color: #2196f3; }
+    .O { color: #f44336; }
+
+    .status {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+
+    .reset-button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      background: #fff;
+      color: #ff5722;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>گروه املاک امید</h1>
+  <p>وب‌سایت ما در حال آماده‌سازی است</p>
+  <div class="game" id="gameBoard"></div>
+  <div class="status" id="status">در انتظار بازیکن دیگر...</div>
+  <button class="reset-button" onclick="resetGame()">شروع مجدد</button>
+
+<script>
+  const firebaseConfig = {
+    databaseURL: "https://aloamlakomid-default-rtdb.firebaseio.com"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const gameId = location.hash.substring(1) || Math.random().toString(36).substr(2, 9);
+  location.hash = gameId;
+  const gameRef = db.ref("games/" + gameId);
+
+  let player = null, turn = null;
+  const board = Array(9).fill("");
+
+  function renderBoard() {
+    const boardDiv = document.getElementById("gameBoard");
+    boardDiv.innerHTML = "";
+    board.forEach((val, i) => {
+      const cell = document.createElement("div");
+      cell.className = "cell " + val;
+      cell.textContent = val;
+      cell.onclick = () => makeMove(i);
+      boardDiv.appendChild(cell);
+    });
+  }
+
+  function makeMove(i) {
+    if (turn !== player || board[i]) return;
+    board[i] = player;
+    turn = player === "A" ? "O" : "A";
+    updateGame();
+  }
+
+  function updateGame() {
+    gameRef.set({ board, turn });
+  }
+
+  function resetGame() {
+    if (player) {
+      board.fill("");
+      turn = "A";
+      updateGame();
+    }
+  }
+
+  function checkWinner() {
+    const win = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    for (let combo of win) {
+      const [a, b, c] = combo;
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+    }
+    if (board.every(cell => cell)) return "مساوی";
+    return null;
+  }
+
+  gameRef.on("value", snapshot => {
+    const data = snapshot.val();
+    if (data) {
+      Object.assign(board, data.board);
+      turn = data.turn;
+      renderBoard();
+      const winner = checkWinner();
+      const status = document.getElementById("status");
+      if (winner === "A" || winner === "O") {
+        status.textContent = `برنده: ${winner}`;
+      } else if (winner === "مساوی") {
+        status.textContent = "بازی مساوی شد!";
+      } else {
+        status.textContent = player === turn ? "نوبت شماست" : "منتظر بازیکن مقابل...";
+      }
+    }
+  });
+
+  gameRef.once("value", snapshot => {
+    const data = snapshot.val();
+    if (!data) {
+      player = "A";
+      turn = "A";
+      updateGame();
+    } else {
+      player = "O";
+    }
+  });
+</script>
+</body>
+</html>
