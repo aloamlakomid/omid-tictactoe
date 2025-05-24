@@ -1,13 +1,11 @@
-
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<!DOCTYPE html><html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>گروه املاک امید - به زودی</title>
+  <title>گروه املاک امید - بازی دوز آنلاین</title>
   <script src="https://unpkg.com/lottie-web@5.7.4/build/player/lottie.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
   <style>
     body {
       margin: 0;
@@ -19,177 +17,137 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
       color: #fff;
       text-align: center;
       padding: 20px;
-    }
+    }@keyframes gradientBG {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
 
-    @keyframes gradientBG {
-      0% {background-position: 0% 50%;}
-      50% {background-position: 100% 50%;}
-      100% {background-position: 0% 50%;}
-    }
+img.logo {
+  width: 180px;
+  margin-bottom: 20px;
+  filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.5));
+}
 
-    h1 {
-      font-size: 2.8em;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }
+h1 {
+  font-size: 2.8em;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
 
-    p {
-      font-size: 1.4em;
-      margin-bottom: 20px;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-    }
+.game {
+  margin-top: 40px;
+}
 
-    .countdown {
-      font-size: 2em;
-      margin: 20px 0;
-      color: #fff;
-      font-weight: bold;
-    }
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  gap: 5px;
+  justify-content: center;
+}
 
-    .game {
-      margin-top: 30px;
-      display: grid;
-      grid-template-columns: repeat(3, 80px);
-      gap: 10px;
-    }
+.cell {
+  width: 100px;
+  height: 100px;
+  background-color: #ffffff;
+  color: #000;
+  font-size: 2.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 10px;
+}
 
-    .cell {
-      width: 80px;
-      height: 80px;
-      background: rgba(255,255,255,0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2em;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
+.cell.a { color: blue; }
+.cell.o { color: red; }
 
-    .cell:hover {
-      background: rgba(255,255,255,0.3);
-    }
+.countdown, .status {
+  margin-top: 20px;
+  font-size: 1.4em;
+}
 
-    .A { color: #2196f3; }
-    .O { color: #f44336; }
+.restart {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #fff;
+  color: #ff5722;
+  font-weight: bold;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+}
 
-    .status {
-      margin-top: 20px;
-      font-size: 1.2em;
-    }
+.footer {
+  margin-top: 40px;
+  font-size: 0.9em;
+  color: #f0f0f0;
+}
 
-    .reset-button {
-      margin-top: 10px;
-      padding: 10px 20px;
-      font-size: 1em;
-      border: none;
-      border-radius: 8px;
-      background: #fff;
-      color: #ff5722;
-      cursor: pointer;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
+  <img src="logo.png" alt="لوگو گروه املاک امید" class="logo">
   <h1>گروه املاک امید</h1>
-  <p>وب‌سایت ما در حال آماده‌سازی است</p>
-  <div class="game" id="gameBoard"></div>
-  <div class="status" id="status">در انتظار بازیکن دیگر...</div>
-  <button class="reset-button" onclick="resetGame()">شروع مجدد</button>
+  <p>سایت در حال ساخت است - اما شما می‌توانید دوز آنلاین بازی کنید!</p>  <div class="game">
+    <div class="board" id="board"></div>
+    <div class="status" id="status"></div>
+    <button class="restart" onclick="resetGame()">شروع مجدد</button>
+  </div>  <div class="footer">
+    © 2025 aloamlakomid.ir - تمامی حقوق محفوظ است.
+  </div>  <script>
+    const board = document.getElementById("board");
+    const statusDiv = document.getElementById("status");
+    let currentPlayer = "A";
+    let cells = Array(9).fill("");
 
-<script>
-  const firebaseConfig = {
-    databaseURL: "https://aloamlakomid-default-rtdb.firebaseio.com"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  const gameId = location.hash.substring(1) || Math.random().toString(36).substr(2, 9);
-  location.hash = gameId;
-  const gameRef = db.ref("games/" + gameId);
-
-  let player = null, turn = null;
-  const board = Array(9).fill("");
-
-  function renderBoard() {
-    const boardDiv = document.getElementById("gameBoard");
-    boardDiv.innerHTML = "";
-    board.forEach((val, i) => {
-      const cell = document.createElement("div");
-      cell.className = "cell " + val;
-      cell.textContent = val;
-      cell.onclick = () => makeMove(i);
-      boardDiv.appendChild(cell);
-    });
-  }
-
-  function makeMove(i) {
-    if (turn !== player || board[i]) return;
-    board[i] = player;
-    turn = player === "A" ? "O" : "A";
-    updateGame();
-  }
-
-  function updateGame() {
-    gameRef.set({ board, turn });
-  }
-
-  function resetGame() {
-    if (player) {
-      board.fill("");
-      turn = "A";
-      updateGame();
+    function renderBoard() {
+      board.innerHTML = "";
+      cells.forEach((value, index) => {
+        const cell = document.createElement("div");
+        cell.className = `cell ${value.toLowerCase()}`;
+        cell.innerText = value;
+        cell.onclick = () => handleMove(index);
+        board.appendChild(cell);
+      });
     }
-  }
 
-  function checkWinner() {
-    const win = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
-    ];
-    for (let combo of win) {
-      const [a, b, c] = combo;
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
-    }
-    if (board.every(cell => cell)) return "مساوی";
-    return null;
-  }
-
-  gameRef.on("value", snapshot => {
-    const data = snapshot.val();
-    if (data) {
-      Object.assign(board, data.board);
-      turn = data.turn;
+    function handleMove(index) {
+      if (cells[index] !== "") return;
+      cells[index] = currentPlayer;
       renderBoard();
-      const winner = checkWinner();
-      const status = document.getElementById("status");
-      if (winner === "A" || winner === "O") {
-        status.textContent = `برنده: ${winner}`;
-      } else if (winner === "مساوی") {
-        status.textContent = "بازی مساوی شد!";
-      } else {
-        status.textContent = player === turn ? "نوبت شماست" : "منتظر بازیکن مقابل...";
+      if (checkWinner()) {
+        statusDiv.innerText = `بازیکن ${currentPlayer} برنده شد!`;
+        return;
       }
+      currentPlayer = currentPlayer === "A" ? "O" : "A";
+      statusDiv.innerText = `نوبت بازیکن ${currentPlayer}`;
     }
-  });
 
-  gameRef.once("value", snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-      player = "A";
-      turn = "A";
-      updateGame();
-    } else {
-      player = "O";
+    function checkWinner() {
+      const lines = [
+        [0,1,2], [3,4,5], [6,7,8],
+        [0,3,6], [1,4,7], [2,5,8],
+        [0,4,8], [2,4,6]
+      ];
+      return lines.some(([a,b,c]) =>
+        cells[a] && cells[a] === cells[b] && cells[a] === cells[c]
+      );
     }
-  });
-</script>
-</body>
+
+    function resetGame() {
+      cells = Array(9).fill("");
+      currentPlayer = "A";
+      renderBoard();
+      statusDiv.innerText = "نوبت بازیکن A";
+    }
+
+    renderBoard();
+    statusDiv.innerText = "نوبت بازیکن A";
+  </script></body>
 </html>
